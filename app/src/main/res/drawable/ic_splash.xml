@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="288dp"
+    android:height="288dp"
+    android:viewportWidth="288"
+    android:viewportHeight="288">
+
+    <!-- Outer glow circle -->
+    <circle
+        android:fillColor="#1A1F35"
+        android:cx="144"
+        android:cy="144"
+        android:r="120" />
+
+    <!-- Moon body -->
+    <path
+        android:fillColor="#C9D1FF"
+        android:pathData="M144,60 C108,60 80,88 80,124 C80,160 108,188 144,188
+                          C156,188 167,184.5 176,178
+                          C168,179.5 159,177 152,171
+                          C136,159 131,138 140,121
+                          C144.5,113 152,107 161,103.5
+                          C159,103 156.5,102 154,101
+                          C151,100.5 147.5,100 144,100
+                          C144,80 144,70 144,60 Z" />
+
+    <!-- Clock outer ring -->
+    <circle
+        android:fillColor="#0D1117"
+        android:cx="190"
+        android:cy="190"
+        android:r="50" />
+    <circle
+        android:fillColor="none"
+        android:strokeColor="#6B7FD4"
+        android:strokeWidth="4"
+        android:cx="190"
+        android:cy="190"
+        android:r="44" />
+
+    <!-- Clock hour markers -->
+    <line android:strokeColor="#6B7FD4" android:strokeWidth="3"
+        android:x1="190" android:y1="150" android:x2="190" android:y2="158" />
+    <line android:strokeColor="#6B7FD4" android:strokeWidth="3"
+        android:x1="230" android:y1="190" android:x2="222" android:y2="190" />
+    <line android:strokeColor="#6B7FD4" android:strokeWidth="3"
+        android:x1="190" android:y1="230" android:x2="190" android:y2="222" />
+    <line android:strokeColor="#6B7FD4" android:strokeWidth="3"
+        android:x1="150" android:y1="190" android:x2="158" android:y2="190" />
+
+    <!-- Hour hand -->
+    <path
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="4"
+        android:strokeLineCap="round"
+        android:pathData="M190,190 L190,165" />
+
+    <!-- Minute hand -->
+    <path
+        android:strokeColor="#FFB347"
+        android:strokeWidth="3"
+        android:strokeLineCap="round"
+        android:pathData="M190,190 L210,190" />
+
+    <!-- Center dot -->
+    <circle
+        android:fillColor="#6B7FD4"
+        android:cx="190"
+        android:cy="190"
+        android:r="5" />
+
+    <!-- Stars -->
+    <circle android:fillColor="#E8EAF6" android:cx="100" android:cy="85" android:r="3" />
+    <circle android:fillColor="#C9D1FF" android:cx="75" android:cy="150" android:r="2" />
+    <circle android:fillColor="#E8EAF6" android:cx="115" android:cy="200" android:r="2.5" />
+    <circle android:fillColor="#C9D1FF" android:cx="210" android:cy="90" android:r="2" />
+
+</vector>
