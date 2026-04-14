@@ -13,8 +13,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 
 data class TimerUiState(
-    val hours: Int = 0,
-    val minutes: Int = 30,
+    val selectedHours: Int = 0,
+    val selectedMinutes: Int = 30,
     val isRunning: Boolean = false,
     val remainingSeconds: Long = 0L,
     val settings: ServiceSettings = ServiceSettings()
@@ -27,54 +27,42 @@ class TimerViewModel(application: Application) : AndroidViewModel(application) {
 
     private val tickReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
-            if (intent.action == TimerService.ACTION_TICK) {
-                val remaining = intent.getLongExtra(TimerService.EXTRA_REMAINING, 0L)
-                _uiState.update { it.copy(remainingSeconds = remaining, isRunning = true) }
-            }
-        }
-    }
-
-    private val finishedReceiver = object : BroadcastReceiver() {
-        override fun onReceive(context: Context, intent: Intent) {
-            if (intent.action == TimerService.ACTION_FINISHED) {
-                _uiState.update { it.copy(isRunning = false, remainingSeconds = 0L) }
+            when (intent.action) {
+                TimerService.ACTION_TICK -> {
+                    val remaining = intent.getLongExtra(TimerService.EXTRA_REMAINING, 0L)
+                    _uiState.update { it.copy(remainingSeconds = remaining, isRunning = true) }
+                }
+                TimerService.ACTION_FINISHED -> {
+                    _uiState.update { it.copy(isRunning = false, remainingSeconds = 0L) }
+                }
             }
         }
     }
 
     init {
         val app = getApplication<Application>()
-        ContextCompat.registerReceiver(
-            app,
-            tickReceiver,
-            IntentFilter(TimerService.ACTION_TICK),
-            ContextCompat.RECEIVER_NOT_EXPORTED
-        )
-        ContextCompat.registerReceiver(
-            app,
-            finishedReceiver,
-            IntentFilter(TimerService.ACTION_FINISHED),
-            ContextCompat.RECEIVER_NOT_EXPORTED
-        )
+        val filter = IntentFilter().apply {
+            addAction(TimerService.ACTION_TICK)
+            addAction(TimerService.ACTION_FINISHED)
+        }
+        ContextCompat.registerReceiver(app, tickReceiver, filter, ContextCompat.RECEIVER_NOT_EXPORTED)
     }
 
-    fun setHours(h: Int) = _uiState.update { it.copy(hours = h) }
-    fun setMinutes(m: Int) = _uiState.update { it.copy(minutes = m) }
+    fun setHours(h: Int) = _uiState.update { it.copy(selectedHours = h) }
+    fun setMinutes(m: Int) = _uiState.update { it.copy(selectedMinutes = m) }
 
     fun setPreset(totalMinutes: Int) {
-        val h = totalMinutes / 60
-        val m = totalMinutes % 60
-        _uiState.update { it.copy(hours = h, minutes = m) }
+        _uiState.update { it.copy(selectedHours = totalMinutes / 60, selectedMinutes = totalMinutes % 60) }
     }
 
     fun updateSettings(settings: ServiceSettings) = _uiState.update { it.copy(settings = settings) }
 
-    fun startTimer(context: Context) {
+    fun startTimer() {
+        val app = getApplication<Application>()
         val state = _uiState.value
-        val totalSeconds = (state.hours * 3600L) + (state.minutes * 60L)
+        val totalSeconds = state.selectedHours * 3600L + state.selectedMinutes * 60L
         if (totalSeconds <= 0L) return
-
-        val intent = Intent(context, TimerService::class.java).apply {
+        val intent = Intent(app, TimerService::class.java).apply {
             action = TimerService.ACTION_START
             putExtra(TimerService.EXTRA_DURATION_SECONDS, totalSeconds)
             putExtra(TimerService.EXTRA_WIFI_OFF, state.settings.turnOffWifi)
@@ -84,22 +72,19 @@ class TimerViewModel(application: Application) : AndroidViewModel(application) {
             putExtra(TimerService.EXTRA_POWER_SAVE, state.settings.enablePowerSaving)
             putExtra(TimerService.EXTRA_CLOSE_APPS, state.settings.closeRunningApps)
         }
-        ContextCompat.startForegroundService(context, intent)
+        ContextCompat.startForegroundService(app, intent)
         _uiState.update { it.copy(isRunning = true, remainingSeconds = totalSeconds) }
     }
 
-    fun stopTimer(context: Context) {
-        val intent = Intent(context, TimerService::class.java).apply {
-            action = TimerService.ACTION_STOP
-        }
-        context.startService(intent)
+    fun stopTimer() {
+        val app = getApplication<Application>()
+        val intent = Intent(app, TimerService::class.java).apply { action = TimerService.ACTION_STOP }
+        app.startService(intent)
         _uiState.update { it.copy(isRunning = false, remainingSeconds = 0L) }
     }
 
     override fun onCleared() {
         super.onCleared()
-        val app = getApplication<Application>()
-        app.unregisterReceiver(tickReceiver)
-        app.unregisterReceiver(finishedReceiver)
+        try { getApplication<Application>().unregisterReceiver(tickReceiver) } catch (_: Exception) {}
     }
 }

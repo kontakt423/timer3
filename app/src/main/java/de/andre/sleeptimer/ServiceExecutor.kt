@@ -17,7 +17,6 @@ class ServiceExecutor(private val context: Context) {
     }
 
     fun executeAll(settings: ServiceSettings) {
-        Log.d(TAG, "Executing all enabled services: $settings")
         if (settings.muteSound) muteSound()
         if (settings.closeRunningApps) closeRunningApps()
         if (settings.turnOffWifi) turnOffWifi()
@@ -33,9 +32,8 @@ class ServiceExecutor(private val context: Context) {
             audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, 0, 0)
             audioManager.setStreamVolume(AudioManager.STREAM_RING, 0, 0)
             audioManager.setStreamVolume(AudioManager.STREAM_NOTIFICATION, 0, 0)
-            Log.d(TAG, "Sound muted successfully")
         } catch (e: Exception) {
-            Log.e(TAG, "Could not mute sound", e)
+            Log.e(TAG, "muteSound failed", e)
         }
     }
 
@@ -43,81 +41,66 @@ class ServiceExecutor(private val context: Context) {
     private fun turnOffWifi() {
         try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                // Android 10+: Öffne WiFi-Einstellungen-Panel
                 val panelIntent = Intent(Settings.Panel.ACTION_WIFI)
                 panelIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 context.startActivity(panelIntent)
             } else {
-                val wifiManager = context.applicationContext
-                    .getSystemService(Context.WIFI_SERVICE) as WifiManager
-                wifiManager.isWifiEnabled = false
+                val wm = context.applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
+                wm.isWifiEnabled = false
             }
-            Log.d(TAG, "WiFi toggle triggered")
         } catch (e: Exception) {
-            Log.e(TAG, "Could not turn off WiFi", e)
+            Log.e(TAG, "turnOffWifi failed", e)
         }
     }
 
     private fun turnOffMobileData() {
         try {
-            // Benötigt MODIFY_PHONE_STATE - per ADB zu gewähren
-            val telephonyManager = context.getSystemService(Context.TELEPHONY_SERVICE) as TelephonyManager
-            val method = telephonyManager.javaClass.getDeclaredMethod("setDataEnabled", Boolean::class.java)
+            val tm = context.getSystemService(Context.TELEPHONY_SERVICE) as TelephonyManager
+            val method = tm.javaClass.getDeclaredMethod("setDataEnabled", Boolean::class.java)
             method.isAccessible = true
-            method.invoke(telephonyManager, false)
-            Log.d(TAG, "Mobile data disabled via reflection")
+            method.invoke(tm, false)
         } catch (e: Exception) {
-            Log.w(TAG, "Reflection method failed, trying Settings.Global", e)
             try {
                 Settings.Global.putInt(context.contentResolver, "mobile_data", 0)
             } catch (e2: Exception) {
-                Log.e(TAG, "Could not disable mobile data", e2)
+                Log.e(TAG, "turnOffMobileData failed", e2)
             }
         }
     }
 
     private fun enableAirplaneMode() {
         try {
-            // Benötigt WRITE_SECURE_SETTINGS - per ADB zu gewähren
             Settings.Global.putInt(context.contentResolver, Settings.Global.AIRPLANE_MODE_ON, 1)
-            val broadcastIntent = Intent(Intent.ACTION_AIRPLANE_MODE_CHANGED)
-            broadcastIntent.putExtra("state", true)
+            val broadcastIntent = Intent(Intent.ACTION_AIRPLANE_MODE_CHANGED).apply {
+                putExtra("state", true)
+            }
             context.sendBroadcast(broadcastIntent)
-            Log.d(TAG, "Airplane mode enabled")
-        } catch (e: SecurityException) {
-            Log.e(TAG, "WRITE_SECURE_SETTINGS not granted. Run: adb shell pm grant de.andre.sleeptimer android.permission.WRITE_SECURE_SETTINGS", e)
         } catch (e: Exception) {
-            Log.e(TAG, "Could not enable airplane mode", e)
+            Log.e(TAG, "enableAirplaneMode failed – WRITE_SECURE_SETTINGS required", e)
         }
     }
 
     private fun enablePowerSaving() {
         try {
-            // Benötigt WRITE_SECURE_SETTINGS - per ADB zu gewähren
-            Settings.Global.putInt(context.contentResolver, Settings.Global.LOW_POWER_MODE, 1)
-            Log.d(TAG, "Power saving mode enabled")
-        } catch (e: SecurityException) {
-            Log.e(TAG, "WRITE_SECURE_SETTINGS not granted for power saving", e)
+            // "low_power" is the Settings.Global.LOW_POWER_MODE constant value
+            Settings.Global.putInt(context.contentResolver, "low_power", 1)
         } catch (e: Exception) {
-            Log.e(TAG, "Could not enable power saving", e)
+            Log.e(TAG, "enablePowerSaving failed – WRITE_SECURE_SETTINGS required", e)
         }
     }
 
     private fun closeRunningApps() {
         try {
-            val activityManager = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
+            val am = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
             @Suppress("DEPRECATION")
-            val runningProcesses = activityManager.runningAppProcesses
-            runningProcesses?.forEach { processInfo ->
-                if (processInfo.processName != context.packageName &&
-                    processInfo.importance >= ActivityManager.RunningAppProcessInfo.IMPORTANCE_SERVICE
-                ) {
-                    activityManager.killBackgroundProcesses(processInfo.processName)
+            am.runningAppProcesses?.forEach { proc ->
+                if (proc.processName != context.packageName &&
+                    proc.importance >= ActivityManager.RunningAppProcessInfo.IMPORTANCE_SERVICE) {
+                    am.killBackgroundProcesses(proc.processName)
                 }
             }
-            Log.d(TAG, "Background apps closed")
         } catch (e: Exception) {
-            Log.e(TAG, "Could not close running apps", e)
+            Log.e(TAG, "closeRunningApps failed", e)
         }
     }
 }
