@@ -12,15 +12,10 @@ val CardNight    = Color(0xFF1E2535)
 val BorderNight  = Color(0xFF2A3347)
 
 // ── Accents ───────────────────────────────────────────────────────────────────
-val AccentPurple      = Color(0xFF7C86FF)
-val AccentPurpleLight = Color(0xFF9EA8FF)
 val AccentOrange      = Color(0xFFFFB347)
 val AccentGreen       = Color(0xFF4CAF82)
-val AccentRed         = Color(0xFFFF6B6B)
 
 // ── Text ─────────────────────────────────────────────────────────────────────
-val TextPrimary   = Color(0xFFE8EAF6)
-val TextSecondary = Color(0xFF9098B3)
 val TextMuted     = Color(0xFF5A6480)
 
 private val DarkColorScheme = darkColorScheme(
